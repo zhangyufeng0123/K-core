@@ -7,7 +7,7 @@ const string filename = "data.txt";
 struct Vertex{
     int val;    //这个点的编号
     vector<int> connectV;   //与这个点连接的点
-    int outVal;
+    int degrees; //该点的度数
 };
 
 //the whole graph
@@ -80,6 +80,7 @@ bool readData(Graph &G_out, Graph &G_in){
         G_out.nodes.push_back(temp);
         G_out.vertex.push_back(temp.val);
         G_out.location[temp.val] = G_out.location.size();
+
     }
 
     //存储入度
@@ -99,34 +100,23 @@ bool readData(Graph &G_out, Graph &G_in){
             G_in.nodes[locate].connectV.push_back(G_out.nodes[i].val);
         }
     }
+}
 
-//    for(int i = 0; i < row; i++){
-//        for(int j = 0; j < row; j++){
-//            for(int k = 0; k < G_out.nodes[j].connectV.size(); j++){
-//                if(G_out.nodes[j].connectV[k] == G_in.nodes[i].val){
-////                    int point = G_out.nodes[j].connectV[k];
-////                    int locate = G_in.location[point];  //使用hash找到point这个点在G_in中的位置
-//                    G_in.nodes[i].connectV.push_back(G_out.nodes[j].val);
-//                    break;
-//                    //G_in.nodes[locate].connectV.push_back(G_in.nodes[i].val);   //将目标点存入到对应的入度中
-//                }
-//            }
-//        }
-//        /*
-//        for(int j = 1; j < G_out.nodes[i].connectV.size(); j++){
-//            int point = G_out.nodes[i].connectV[j];
-//            int locate = G_in.location[point];  //使用hash找到point这个点在G_in中的位置
-//            G_in.nodes[locate].connectV.push_back(G_in.nodes[i].val);   //将目标点存入到对应的入度中
-//            //G_in.nodes[G_in.location[G_out.nodes[i].connectV[j]]] =
-//        }
-//         */
-//    }
+static bool cmp_out(Vertex &a, Vertex &b){
+
+}
+
+//Algorithm 1:QueryDcore
+//k是入度，l是出度
+Graph QueryDcore(Graph G_out, Graph G_in, int k, int l){
+    //先对图中的点的度数排序
+
 }
 
 int main(){
     Graph G_out, G_in;
     bool j = readData(G_out, G_in);
-    cout << 1 << endl;
+    //cout << 1 << endl;
 
     return 0;
 }
