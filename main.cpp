@@ -80,7 +80,7 @@ bool readData(Graph &G_out, Graph &G_in){
         G_out.nodes.push_back(temp);
         G_out.vertex.push_back(temp.val);
         G_out.location[temp.val] = G_out.location.size();
-
+        G_out.nodes.back().degrees = G_out.nodes.back().connectV.size();
     }
 
     //存储入度
@@ -102,15 +102,27 @@ bool readData(Graph &G_out, Graph &G_in){
     }
 }
 
+//对点的出度进行排序
 static bool cmp_out(Vertex &a, Vertex &b){
+    return a.degrees < b.degrees;
+}
 
+//对点的入度进行排序
+static bool cmp_in(Vertex &a, Vertex &b){
+    return a.degrees < b.degrees;
 }
 
 //Algorithm 1:QueryDcore
-//k是入度，l是出度
+//k是出度，l是入度
 Graph QueryDcore(Graph G_out, Graph G_in, int k, int l){
     //先对图中的点的度数排序
 
+    int flag = 1;
+    while(1){
+        flag = 1;
+
+        if(flag)    break;
+    }
 }
 
 int main(){
