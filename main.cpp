@@ -7,6 +7,7 @@ const string filename = "data1.txt";
 struct Vertex{
     int val;    //这个点的编号
     vector<int> connectV;   //与这个点连接的点
+    //int weight; //该点的权重
     //int degrees; //该点的度数
 };
 
@@ -15,6 +16,7 @@ struct Graph{
     //vector<int> vertex; //标注顺序下是哪个点的位置
     vector<Vertex> nodes;
     map<int, int> location; //用来存储一个点在第几列
+    map<int, int> weight;
 };
 
 //将string类型转换为int类型
@@ -69,10 +71,13 @@ bool readData(Graph &G_out, Graph &G_in){
             }
              */
             int num = stringToInt(lineArray[i]);
-
+            //int tmpWeight;
             //当i=0时代表输入num的是这个节点，其余的点是这个点一步就可以到达的点
             if(i == 0){
                 temp.val = num;
+            }else if(i == 1){
+                G_out.weight[temp.val] = num;//赋值权重
+                //tmpWeight = num;
             }else{
                 temp.connectV.push_back(num);
             }
@@ -253,12 +258,13 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
 
 void Peel(Graph G_out, Graph G_in, int k, int l, int q){
     Graph G_outq, G_inq;
+    //获得极大子图
     bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
     if(!flag){
         cout << "目标点不能构成k-core" << endl;
         return;
     }
-    
+
 }
 
 int main(){
