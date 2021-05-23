@@ -7,7 +7,7 @@ const string filename = "data1.txt";
 struct Vertex{
     int val;    //这个点的编号
     vector<int> connectV;   //与这个点连接的点
-    //int weight; //该点的权重
+    int weight; //该点的权重
     //int degrees; //该点的度数
 };
 
@@ -16,7 +16,7 @@ struct Graph{
     //vector<int> vertex; //标注顺序下是哪个点的位置
     vector<Vertex> nodes;
     map<int, int> location; //用来存储一个点在第几列
-    map<int, int> weight;
+    map<int, int> weights;
 };
 
 //将string类型转换为int类型
@@ -76,7 +76,8 @@ bool readData(Graph &G_out, Graph &G_in){
             if(i == 0){
                 temp.val = num;
             }else if(i == 1){
-                G_out.weight[temp.val] = num;//赋值权重
+                temp.weight = num;
+                //G_out.weight[temp.val] = num;//赋值权重
                 //tmpWeight = num;
             }else{
                 temp.connectV.push_back(num);
@@ -85,6 +86,7 @@ bool readData(Graph &G_out, Graph &G_in){
         G_out.nodes.push_back(temp);
         //G_out.vertex.push_back(temp.val);
         G_out.location[temp.val] = G_out.location.size();
+        G_out.weights[temp.val] = temp.weight;
         //G_out.nodes.back().degrees = G_out.nodes.back().connectV.size();
     }
 
@@ -93,8 +95,10 @@ bool readData(Graph &G_out, Graph &G_in){
     //初始化入度
     for(int i = 0; i < row; i++){
         tmp.val = G_out.nodes[i].val;
+        tmp.weight = G_out.weights[tmp.val];
         G_in.nodes.push_back(tmp);
         G_in.location[tmp.val] = i;
+        G_in.weights[tmp.val] = tmp.weight;
         //G_in.vertex.push_back(tmp.val);
     }
 
@@ -107,12 +111,33 @@ bool readData(Graph &G_out, Graph &G_in){
     }
 }
 
-//对点的出度进行排序
+//二分查找
+int binarySearch(vector<int> &nums, int target){
+    int left = 0, right = nums.size() - 1;
+    while(right >= left){
+        int mid = (left + right) >> 1;
+        if(nums[mid] == target){
+            return mid;
+        }else if(nums[mid] > target){
+            right = mid - 1;
+        }else{
+            left = mid + 1;
+        }
+    }
+    return -1;
+}
+
+//根据点的权重进行升序
+static bool cmp_weight(Vertex &a, Vertex&b){
+    return a.weight < b.weight;
+}
+
+//对点的出度进行升序
 static bool cmp_out(Vertex &a, Vertex &b){
     return a.connectV.size() < b.connectV.size();
 }
 
-//对点的入度进行排序
+//对点的入度进行升序
 static bool cmp_in(Vertex &a, Vertex &b){
     return a.connectV.size() < b.connectV.size();
 }
@@ -133,12 +158,13 @@ void DeleteSingleNode(Graph &G, int nodeVal, int targetNode){
  * 先找到第一张图要删的点的位置
  * 将这个点的位置与最后一个点的位置交换
  */
-void DeleteNode(Graph &G1, Graph &G2, int targetNode){
+void DeleteNode(Graph &G1, Graph &G2, int targetNode, vector<int> &nodes){
     int point = G1.location[targetNode];
 
     //删除所有这个点所有出边或入边
     for(int i = 0; i < G1.nodes[point].connectV.size(); i++){
         int temppoint = G1.nodes[point].connectV[i];
+        nodes.push_back(temppoint);
         DeleteSingleNode(G2, targetNode, temppoint);
     }
 
@@ -152,10 +178,11 @@ void DeleteNode(Graph &G1, Graph &G2, int targetNode){
 }
 
 //Algorithm 1:QueryDcore
-//k是出度，l是入度
+//k是入度，l是出度
 bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Graph &G_inq){
 
     int flag;
+    vector<int> useless;
     while(1){
         flag = 1;
         //先将点按照出度进行排序
@@ -164,11 +191,11 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
             G_out.location[G_out.nodes[i].val] = i;
         }
         for(int i = 0; i < G_out.nodes.size(); i++){
-            if(G_out.nodes[i].connectV.size() < k){
+            if(G_out.nodes[i].connectV.size() < l){
                 //delete node
                 int e = G_out.nodes[i].val;
-                DeleteNode(G_out, G_in, e);
-                DeleteNode(G_in, G_out, e);
+                DeleteNode(G_out, G_in, e, useless);
+                DeleteNode(G_in, G_out, e, useless);
                 flag = 0;
             }
         }
@@ -179,11 +206,11 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
             G_in.location[G_in.nodes[i].val] = i;
         }
         for(int i = 0; i < G_in.nodes.size(); i++){
-            if(G_in.nodes[i].connectV.size() < l){
+            if(G_in.nodes[i].connectV.size() < k){
                 //delete node
                 int e = G_in.nodes[i].val;
-                DeleteNode(G_out, G_in, e);
-                DeleteNode(G_in, G_out, e);
+                DeleteNode(G_out, G_in, e, useless);
+                DeleteNode(G_in, G_out, e, useless);
                 flag = 0;
             }
         }
@@ -256,15 +283,108 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
     return true;
 }
 
-void Peel(Graph G_out, Graph G_in, int k, int l, int q){
+//k是入度，l是出度
+int Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr){
     Graph G_outq, G_inq;
     //获得极大子图
     bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
     if(!flag){
         cout << "目标点不能构成k-core" << endl;
-        return;
+        return -1;
+    }
+    //对极大子图中的点进行排序
+    sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
+    queue<int> Q;
+    vector<int> D, L;
+    //用一个hash来记录L中的每个点的位置
+    //map<int, int> locate;
+    //L.push_back(G_outq.nodes.front().val);
+
+    //初始化L
+    for(int i = 0; i < G_outq.nodes.size(); i++){
+        L.push_back(G_outq.nodes[i].val);
+        //locate[L.back()] = i;
     }
 
+    map<int, bool> judge;
+    for(int i = 0; i < G_outq.nodes.size(); i++){
+        judge[G_outq.nodes[i].val] = false;
+        //judge_tmp[G_outq.nodes[i].val] = false;//标记还有哪些点还剩余
+    }
+    //获取删减之后的顶点
+    while (!L.empty()){
+        int tmp = L.front();
+        D.clear();
+        Q.push(tmp);
+        judge[tmp] = true;
+        while(!Q.empty()){
+            int pointVal = Q.front();
+            judge[pointVal] = false;
+            Q.pop();
+            if(pointVal == q){
+                int res = G_out.nodes[G_out.location[L.back()]].weight;
+                for(int i = 0; i < D.size(); i++){
+                    res = max(res, G_out.nodes[G_out.location[D[i]]].weight);
+                }
+                return res;
+//                while(!L.empty()){
+//                    int tmpe = L.back();
+//                    D.push_back(tmpe);
+//                    L.pop_back();
+//                }
+//                break;
+            }
+            vector<int> nodes;//记录哪些与pointVal相连的边被删除
+            DeleteNode(G_outq, G_inq, pointVal, nodes);
+            nodes.clear();
+            DeleteNode(G_inq, G_outq, pointVal, nodes);
+            for(int i = 0; i < nodes.size(); i++){
+                if(G_outq.nodes[G_outq.location[nodes[i]]].connectV.size() < l && !judge[G_outq.location[nodes[i]]]){
+                    Q.push(nodes[i]);
+                    judge[G_outq.location[nodes[i]]] = true;
+                    continue;
+                }
+                if(G_inq.nodes[G_inq.location[nodes[i]]].connectV.size() < k && !judge[G_inq.location[nodes[i]]]){
+                    Q.push(nodes[i]);
+                    judge[G_inq.location[nodes[i]]] = true;
+                }
+            }
+            int location = binarySearch(L, pointVal);
+            L.erase(L.begin() + location);
+            D.push_back(pointVal);
+        }
+    }
+
+    return -1;
+//    for(int i = 0; i < D.size(); i++){
+//        judge_tmp[D[i]] = true;
+//    }
+//    for(int i = 0; i < D.size(); i++){
+//        Vertex tmp;
+//        tmp.val = D[i];
+//        int locate = G_out.location[tmp.val];
+//        for(int j = 0; j < G_out.nodes[locate].connectV.size(); j++){
+//            int t = G_out.nodes[locate].connectV[j];
+//            if(judge_tmp[t]){
+//                tmp.connectV.push_back(t);
+//            }
+//        }
+//        G_outr.nodes.push_back(tmp);
+//        G_outr.location[tmp.val] = i;
+//    }
+//    for(int i = 0; i < D.size(); i++){
+//        Vertex tmp;
+//        tmp.val = D[i];
+//        int locate = G_in.location[tmp.val];
+//        for(int j = 0; j < G_in.nodes[locate].connectV.size(); j++){
+//            int t = G_in.nodes[locate].connectV[j];
+//            if(judge_tmp[t]){
+//                tmp.connectV.push_back(t);
+//            }
+//        }
+//        G_inr.nodes.push_back(tmp);
+//        G_inr.location[tmp.val] = i;
+//    }
 }
 
 int main(){
@@ -273,8 +393,8 @@ int main(){
     //cout << 1 << endl;
 
     //Graph temp = QueryDcore(G_out, G_in, 1, 1, 1);
-    Graph G_outq, G_inq;
-    bool t = QueryDcore(G_out, G_in, 1, 1, 8, G_outq, G_inq);
+    Graph G_outr, G_inr;
+    //bool t = QueryDcore(G_out, G_in, 1, 1, 8, G_outq, G_inq);
     cout << 1 << endl;
 
     return 0;
