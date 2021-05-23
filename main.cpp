@@ -153,6 +153,46 @@ void DeleteSingleNode(Graph &G, int nodeVal, int targetNode){
     G.nodes[point].connectV.pop_back();
 }
 
+
+//根据点集获取图
+void pointsChangeToGraph(Graph G_out, Graph G_in, Graph &G_outr, Graph &G_inr, vector<int> points){
+    map<int, bool> judge;
+    //初始化judge
+    for(int i = 0; i < G_out.nodes.size(); i++){
+        judge[G_out.nodes[i].val] = false;
+    }
+
+    //将目标点集所拥有的点置为true
+    for(int i = 0; i < points.size(); i++){
+        judge[points[i]] = true;
+    }
+
+    for(int i = 0; i < points.size(); i++){
+        Vertex tmp;
+        tmp.val = points[i];
+        int locate = G_out.location[tmp.val];
+        tmp.weight = G_out.nodes[locate].weight;
+        vector<int> connectV_tmp;
+        for(int j = 0; j < G_out.nodes[locate].connectV.size(); j++){
+            if(judge[G_out.nodes[locate].connectV[j]]){
+                connectV_tmp.push_back(G_out.nodes[locate].connectV[j]);
+            }
+        }
+        G_outr.nodes.push_back(tmp);
+        G_outr.location[tmp.val] = i;
+        G_outr.weights[tmp.val] = tmp.weight;
+        connectV_tmp.clear();
+        for(int j = 0; j < G_in.nodes[locate].connectV.size(); j++){
+            if(judge[G_in.nodes[locate].connectV[j]]){
+                connectV_tmp.push_back(G_in.nodes[locate].connectV[j]);
+            }
+        }
+        G_inr.nodes.push_back(tmp);
+        G_inr.location[tmp.val] = i;
+        G_inr.weights[tmp.val] = tmp.weight;
+    }
+}
+
 /*
  * 删除图2中
  * 先找到第一张图要删的点的位置
@@ -284,13 +324,13 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
 }
 
 //k是入度，l是出度
-int Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr){
+void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr){
     Graph G_outq, G_inq;
     //获得极大子图
     bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
     if(!flag){
         cout << "目标点不能构成k-core" << endl;
-        return -1;
+        return;
     }
     //对极大子图中的点进行排序
     sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
@@ -322,17 +362,17 @@ int Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_i
             judge[pointVal] = false;
             Q.pop();
             if(pointVal == q){
-                int res = G_out.nodes[G_out.location[L.back()]].weight;
-                for(int i = 0; i < D.size(); i++){
-                    res = max(res, G_out.nodes[G_out.location[D[i]]].weight);
-                }
-                return res;
-//                while(!L.empty()){
-//                    int tmpe = L.back();
-//                    D.push_back(tmpe);
-//                    L.pop_back();
+//                int res = G_out.nodes[G_out.location[L.back()]].weight;
+//                for(int i = 0; i < D.size(); i++){
+//                    res = max(res, G_out.nodes[G_out.location[D[i]]].weight);
 //                }
-//                break;
+//                return res;
+                while(!L.empty()){
+                    int tmpe = L.back();
+                    D.push_back(tmpe);
+                    L.pop_back();
+                }
+                break;
             }
             vector<int> nodes;//记录哪些与pointVal相连的边被删除
             DeleteNode(G_outq, G_inq, pointVal, nodes);
@@ -354,8 +394,8 @@ int Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_i
             D.push_back(pointVal);
         }
     }
-
-    return -1;
+    pointsChangeToGraph(G_out, G_in, G_outr, G_inr, D);
+//    return -1;
 //    for(int i = 0; i < D.size(); i++){
 //        judge_tmp[D[i]] = true;
 //    }
@@ -385,6 +425,44 @@ int Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_i
 //        G_inr.nodes.push_back(tmp);
 //        G_inr.location[tmp.val] = i;
 //    }
+}
+
+//G_out存储的是每个点能一步到达的点，G_in存储的是每个点能被一步到达的点
+void batchPeelingAlgorithm(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr){
+    Graph G_outq, G_inq;
+    //获取存在q的极大子图
+    bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);//Line1
+    if(!flag){
+        cout << "目标点不能构成k-core" << endl;
+        return;
+    }
+
+    //对极大子图中的点根据权重进行排序
+    sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
+    vector<int> L, H;//L存储图中的所有点的val
+    for(int i = 0; i < G_outq.nodes.size(); i++){
+        L.push_back(G_outq.nodes[i].val);   //Line3
+    }
+    H.assign(L.begin(), L.begin() + (L.size() / 2));//Line4
+    while(!H.empty()){
+        vector<int> L0(L);  //Line6
+        L.assign(L.begin() + (L.size() / 2), L.end());  //Line7
+        Graph G_outq_tmp, G_inq_tmp;
+        flag = QueryDcore(G_outq, G_inq, k, l, q, G_outq_tmp, G_inq_tmp);//Line8
+        if(!flag){
+            H.assign(H.begin(), H.begin() + (H.size() / 2));
+            L.assign(L0.begin(), L0.end());
+        }else{
+            vector<int> L_star;
+            sort(G_outq_tmp.nodes.begin(), G_outq_tmp.nodes.end(), cmp_weight);
+            for(int i = 0; i < G_outq_tmp.nodes.size(); i++){
+                L_star.push_back(G_outq_tmp.nodes[i].val);
+            }
+            H.assign(L_star.begin(), L_star.begin() + (L_star.size() / 2));
+            L.assign(L_star.begin(), L_star.end());
+        }
+    }
+    pointsChangeToGraph(G_outq, G_inq, G_outr, G_inr, L);
 }
 
 int main(){
