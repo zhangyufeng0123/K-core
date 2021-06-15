@@ -99,7 +99,7 @@ bool readDataTmp(Graph &G_out, Graph &G_in){
         G_in.nodes[weights[i].first - 1].weight = i;
     }
 
-    //将Graph下的weights填充
+    //fill the weights
     for(int i = 0; i < points; i++){
         G_out.weights[i + 1] = G_out.nodes[i].weight;
         G_in.weights[i + 1] = G_in.nodes[i].weight;
@@ -425,6 +425,7 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
         Vertex tmp;
         tmp.val = arrVal[i];
         int locate = G_out.location[tmp.val];
+        tmp.weight = G_out.weights[tmp.val];
         for (int j = 0; j < G_out.nodes[locate].connectV.size(); j++) {
             int t = G_out.nodes[locate].connectV[j];
             if (stamp[t]) {
@@ -433,11 +434,13 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
         }
         G_outq.nodes.push_back(tmp);
         G_outq.location[tmp.val] = i;
+        G_outq.weights[tmp.val] = tmp.weight;
     }
 
     for (int i = 0; i < arrVal.size(); i++) {
         Vertex tmp;
         tmp.val = arrVal[i];
+        tmp.weight = G_in.weights[tmp.val];
         int locate = G_in.location[tmp.val];
         for (int j = 0; j < G_in.nodes[locate].connectV.size(); j++) {
             int t = G_in.nodes[locate].connectV[j];
@@ -447,7 +450,9 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
         }
         G_inq.nodes.push_back(tmp);
         G_inq.location[tmp.val] = i;
+        G_inq.weights[tmp.val] = tmp.weight;
     }
+
     return true;
 }
 
@@ -874,6 +879,19 @@ int main() {
     //验证basic peel是否能成功使用
     Graph G_out, G_in;
     readDataTmp(G_out, G_in);
+
+    //测试Query Community
+    Graph G_outq, G_inq;
+    bool flag = QueryDcore(G_out, G_in, 2, 3, 1, G_outq, G_inq);
+    if(!flag){
+        cout << "q不满足" << endl;
+    }
+    //get edges in the new graph
+//    for(int i = 0; i < G_outq.nodes.size(); i++){
+//        for(int j = 0; j < G_outq.nodes[i].connectV.size(); j++){
+//            cout << G_outq.nodes[i].val << ' ' << G_outq.nodes[i].connectV[j] << endl;
+//        }
+//    }
 
     return 0;
 }
