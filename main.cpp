@@ -279,6 +279,7 @@ static bool cmp_in(Vertex &a, Vertex &b) {
 
 void DeleteSingleNode(Graph &G, int nodeVal, int targetNode) {
     int point = G.location[targetNode];
+    if(point == -1) return;
     int i = 0;
     for (; i < G.nodes[point].connectV.size(); i++) {
         if (G.nodes[point].connectV[i] == nodeVal) break;
@@ -332,7 +333,7 @@ void pointsChangeToGraph(Graph G_out, Graph G_in, Graph &G_outr, Graph &G_inr, v
 }
 
 /*
- * 删除图2中
+ * 删除图2中的targetNode的点
  * 先找到第一张图要删的点的位置
  * 将这个点的位置与最后一个点的位置交换
  */
@@ -456,37 +457,54 @@ bool QueryDcore(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outq, Gra
     return true;
 }
 
-//k是入度，l是出度
+/*
+ * k是入度，l是出度
+ * G_out是极大子图的出度存储
+ * G_in是极大子图的入度存储
+ */
 void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr) {
-    Graph G_outq, G_inq;
-    //获得极大子图
-    bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
-    if (!flag) {
-        cout << "目标点不能构成k-core" << endl;
-        return;
-    }
+    //备份G_out, G_in
+    Graph G_outTmp, G_inTmp;
+    G_outTmp.location = G_out.location;
+    G_inTmp.location = G_in.location;
+    G_outTmp.weights = G_out.weights;
+    G_inTmp.weights = G_in.weights;
+    G_outTmp.nodes.assign(G_out.nodes.begin(), G_out.nodes.end());
+    G_inTmp.nodes.assign(G_in.nodes.begin(), G_in.nodes.end());
+
     //对极大子图中的点进行排序
-    sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
+    sort(G_out.nodes.begin(), G_out.nodes.end(), cmp_weight);
+
+    //更新G_out中的location
+    for(int i = 0; i < G_out.nodes.size(); i++){
+        G_out.location[G_out.nodes[i].val] = i;
+    }
+    //finish update
+
     queue<int> Q;
-    vector<int> D, L;
+    vector<int> D;
+    vector<int> L;
     //用一个hash来记录L中的每个点的位置
     //map<int, int> locate;
     //L.push_back(G_outq.nodes.front().val);
 
     //初始化L
-    for (int i = 0; i < G_outq.nodes.size(); i++) {
-        L.push_back(G_outq.nodes[i].val);
+    for (int i = 0; i < G_out.nodes.size(); i++) {
+        L.push_back(G_out.nodes[i].val);
         //locate[L.back()] = i;
     }
-
+//
     map<int, bool> judge;
-    for (int i = 0; i < G_outq.nodes.size(); i++) {
-        judge[G_outq.nodes[i].val] = false;
+    for (int i = 0; i < G_out.nodes.size(); i++) {
+        judge[G_out.nodes[i].val] = false;
         //judge_tmp[G_outq.nodes[i].val] = false;//标记还有哪些点还剩余
     }
     //获取删减之后的顶点
     while (!L.empty()) {
         int tmp = L.front();
+        for(int i = 0; i < D.size(); i++){
+            judge[D[i]] = false;
+        }
         D.clear();
         Q.push(tmp);
         judge[tmp] = true;
@@ -507,31 +525,46 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
                 }
                 break;
             }
-            vector<int> nodes;//记录哪些与pointVal相连的边被删除
-            DeleteNode(G_outq, G_inq, pointVal, nodes);
-            nodes.clear();
-            DeleteNode(G_inq, G_outq, pointVal, nodes);
+            vector<int> nodes, points;//记录哪些与pointVal相连的边被删除
+            DeleteNode(G_out, G_in, pointVal, nodes);
+//            nodes.clear();
+            DeleteNode(G_in, G_out, pointVal, nodes);
+//            nodes.push_back(points.front());
+//            for(int i = 1; i < points.size(); i++){
+//                if(points[i] != points[i - 1])    nodes.push_back(points[i]);
+//            }
             for (int i = 0; i < nodes.size(); i++) {
-                if (G_outq.nodes[G_outq.location[nodes[i]]].connectV.size() < l && !judge[G_outq.location[nodes[i]]]) {
+                if (G_out.nodes[G_out.location[nodes[i]]].connectV.size() < l && !judge[nodes[i]]) {
                     Q.push(nodes[i]);
-                    judge[G_outq.location[nodes[i]]] = true;
+                    judge[nodes[i]] = true;
                     continue;
                 }
-                if (G_inq.nodes[G_inq.location[nodes[i]]].connectV.size() < k && !judge[G_inq.location[nodes[i]]]) {
+                if (G_in.nodes[G_in.location[nodes[i]]].connectV.size() < k && !judge[nodes[i]]) {
                     Q.push(nodes[i]);
-                    judge[G_inq.location[nodes[i]]] = true;
+                    judge[nodes[i]] = true;
                 }
             }
-            int location = binarySearch(L, pointVal);
+            int location = 0;
+            for(; location < L.size(); location++){
+                if(L[location] == pointVal) break;
+            }
             L.erase(L.begin() + location);
             D.push_back(pointVal);
         }
     }
-    pointsChangeToGraph(G_out, G_in, G_outr, G_inr, D);
+
+    //fill G_out, G_in into G_outr, G_inr
+//    swap(G_out.location, G_outr.location);
+//    swap(G_in.location, G_inr.location);
+//    swap(G_out.weights, G_outr.weights);
+//    swap(G_in.weights, G_inr.weights);
+//    G_outr.nodes.assign(G_out.nodes.begin(), G_out.nodes.end());
+//    G_inr.nodes.assign(G_in.nodes.begin(), G_in.nodes.end());
+    pointsChangeToGraph(G_outTmp, G_inTmp, G_outr, G_inr, D);
 }
 
 //G_out存储的是每个点能一步到达的点，G_in存储的是每个点能被一步到达的点
-void batchPeelingAlgorithm(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr) {
+void BatchPeelingAlgorithm(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr) {
     Graph G_outq, G_inq;
     //获取存在q的极大子图
     bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);//Line1
@@ -874,17 +907,19 @@ void BehindQuery(Graph G_out, Graph G_in) {
     vector<int> points = IndexQueryAlgorithm(Itmp, q, l, location[k - 1]);
 }
 
-
-int main() {
+void solve(){
+    int k, l, q;
+    cin >> k >> l >> q;
     //验证basic peel是否能成功使用
     Graph G_out, G_in;
     readDataTmp(G_out, G_in);
 
     //测试Query Community
     Graph G_outq, G_inq;
-    bool flag = QueryDcore(G_out, G_in, 2, 3, 1, G_outq, G_inq);
+    bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
     if(!flag){
         cout << "q不满足" << endl;
+        return;
     }
     //get edges in the new graph
 //    for(int i = 0; i < G_outq.nodes.size(); i++){
@@ -892,6 +927,16 @@ int main() {
 //            cout << G_outq.nodes[i].val << ' ' << G_outq.nodes[i].connectV[j] << endl;
 //        }
 //    }
+    //测试Basic Peeling
+    Graph G_outBP, G_inBP;
+    Peel(G_outq, G_inq, k, l, q, G_outBP, G_inBP);
+    //测试结束
+    
+    Graph G_outBPA, G_inBPA;
+    BatchPeelingAlgorithm(G_outq, G_inq, k, l, q, G_outBPA, G_inBPA);
+}
 
+int main() {
+    solve();
     return 0;
 }
