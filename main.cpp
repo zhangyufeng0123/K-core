@@ -175,81 +175,18 @@ bool readData(Graph &G_out, Graph &G_in) {
         G_out.nodes[weights[i].first - 1].weight = i;
         G_in.nodes[weights[i].first - 1].weight = i;
     }
-
-    //存储出度
-//    while (getline(infile, lineStr)) {
-//        //int col = 0;    //记录现在是第几列
-//        row++;
-//        //存成二维表结构
-//        stringstream ss(lineStr);
-//        string str;
-//        vector<string> lineArray;
-//        //按照空格分开
-//        while (getline(ss, str, ' ')) {
-//            lineArray.push_back(str);
-//        }
-//
-//        //if(lineArray.size() == 0)   continue;   //只有一个结点，说明没有出度，可以直接忽略
-//        //将数据放到vector容器中
-//        Vertex temp;
-//        for (int i = 0; i < lineArray.size(); i++) {
-//            /*
-//            if(!judgeNum(lineArray[i])){//判断输入的数据是否报错
-//                cout << "第" << row << "行，第" << i << "个数据出现了问题" << endl;
-//                return false;
-//            }
-//             */
-//            int num = stringToInt(lineArray[i]);
-//            //int tmpWeight;
-//            //当i=0时代表输入num的是这个节点，其余的点是这个点一步就可以到达的点
-//            if (i == 0) {
-//                temp.val = num;
-//            } else if (i == 1) {
-//                temp.weight = num;
-//                //G_out.weight[temp.val] = num;//赋值权重
-//                //tmpWeight = num;
-//            } else {
-//                temp.connectV.push_back(num);
-//            }
-//        }
-//        G_out.nodes.push_back(temp);
-//        //G_out.vertex.push_back(temp.val);
-//        G_out.location[temp.val] = G_out.location.size();
-//        G_out.weights[temp.val] = temp.weight;
-//        //G_out.nodes.back().degrees = G_out.nodes.back().connectV.size();
-//    }
-//
-//    //存储入度
-//    Vertex tmp;
-//    //初始化入度
-//    for (int i = 0; i < row; i++) {
-//        tmp.val = G_out.nodes[i].val;
-//        tmp.weight = G_out.weights[tmp.val];
-//        G_in.nodes.push_back(tmp);
-//        G_in.location[tmp.val] = i;
-//        G_in.weights[tmp.val] = tmp.weight;
-//        //G_in.vertex.push_back(tmp.val);
-//    }
-//
-//    for (int i = 0; i < row; i++) {
-//        for (int j = 0; j < G_out.nodes[i].connectV.size(); j++) {
-//            int point = G_out.nodes[i].connectV[j];
-//            int locate = G_in.location[point];
-//            G_in.nodes[locate].connectV.push_back(G_out.nodes[i].val);
-//        }
-//    }
 }
 
 //二分查找
-int binarySearch(vector<int> &nums, int target) {
+int binarySearch(vector<PII> nums, int targetWeight){
     int left = 0, right = nums.size() - 1;
-    while (right >= left) {
+    while(right >= left){
         int mid = (left + right) >> 1;
-        if (nums[mid] == target) {
+        if(nums[mid].second == targetWeight){
             return mid;
-        } else if (nums[mid] > target) {
+        }else if(nums[mid].second > targetWeight){
             right = mid - 1;
-        } else {
+        }else{
             left = mid + 1;
         }
     }
@@ -311,19 +248,21 @@ void pointsChangeToGraph(Graph G_out, Graph G_in, Graph &G_outr, Graph &G_inr, v
         tmp.val = points[i];
         int locate = G_out.location[tmp.val];
         tmp.weight = G_out.nodes[locate].weight;
-        vector<int> connectV_tmp;
+        //vector<int> connectV_tmp;
         for (int j = 0; j < G_out.nodes[locate].connectV.size(); j++) {
             if (judge[G_out.nodes[locate].connectV[j]]) {
-                connectV_tmp.push_back(G_out.nodes[locate].connectV[j]);
+                tmp.connectV.push_back(G_out.nodes[locate].connectV[j]);
             }
         }
+
         G_outr.nodes.push_back(tmp);
         G_outr.location[tmp.val] = i;
         G_outr.weights[tmp.val] = tmp.weight;
-        connectV_tmp.clear();
+        //connectV_tmp.clear();
+        tmp.connectV.clear();
         for (int j = 0; j < G_in.nodes[locate].connectV.size(); j++) {
             if (judge[G_in.nodes[locate].connectV[j]]) {
-                connectV_tmp.push_back(G_in.nodes[locate].connectV[j]);
+                tmp.connectV.push_back(G_in.nodes[locate].connectV[j]);
             }
         }
         G_inr.nodes.push_back(tmp);
@@ -483,17 +422,19 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
 
     queue<int> Q;
     vector<int> D;
-    vector<int> L;
+    vector<PII> L;
     //用一个hash来记录L中的每个点的位置
     //map<int, int> locate;
     //L.push_back(G_outq.nodes.front().val);
 
     //初始化L
     for (int i = 0; i < G_out.nodes.size(); i++) {
-        L.push_back(G_out.nodes[i].val);
-        //locate[L.back()] = i;
+        PII tmpe;
+        tmpe.first = G_out.nodes[i].val;
+        tmpe.second = G_out.nodes[i].weight;
+        L.push_back(tmpe);
     }
-//
+
     map<int, bool> judge;
     for (int i = 0; i < G_out.nodes.size(); i++) {
         judge[G_out.nodes[i].val] = false;
@@ -501,7 +442,7 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
     }
     //获取删减之后的顶点
     while (!L.empty()) {
-        int tmp = L.front();
+        int tmp = L.front().first;
         for(int i = 0; i < D.size(); i++){
             judge[D[i]] = false;
         }
@@ -519,7 +460,7 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
 //                }
 //                return res;
                 while (!L.empty()) {
-                    int tmpe = L.back();
+                    int tmpe = L.back().first;
                     D.push_back(tmpe);
                     L.pop_back();
                 }
@@ -544,10 +485,8 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
                     judge[nodes[i]] = true;
                 }
             }
-            int location = 0;
-            for(; location < L.size(); location++){
-                if(L[location] == pointVal) break;
-            }
+            int targetWeight = G_out.weights[pointVal];
+            int location = binarySearch(L, targetWeight);
             L.erase(L.begin() + location);
             D.push_back(pointVal);
         }
@@ -563,23 +502,29 @@ void Peel(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_
     pointsChangeToGraph(G_outTmp, G_inTmp, G_outr, G_inr, D);
 }
 
+void GraphAToB(Graph G_out, Graph G_in, Graph &G_outT, Graph &G_inN){
+    G_outT.nodes.assign(G_out.nodes.begin(), G_out.nodes.end());
+    G_inN.nodes.assign(G_in.nodes.begin(), G_in.nodes.end());
+    G_outT.location = G_out.location;
+    G_outT.weights = G_out.weights;
+    G_inN.location = G_in.location;
+    G_inN.weights = G_in.weights;
+}
+
 //G_out存储的是每个点能一步到达的点，G_in存储的是每个点能被一步到达的点
 void BatchPeelingAlgorithm(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr) {
-    Graph G_outq, G_inq;
-    //获取存在q的极大子图
-    bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);//Line1
-    if (!flag) {
-        cout << "目标点不能构成k-core" << endl;
-        return;
-    }
-
+    Graph G_outTmp, G_inTmp;
+    GraphAToB(G_out, G_in, G_outTmp, G_inTmp);
     //对极大子图中的点根据权重进行排序
-    sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
+    sort(G_out.nodes.begin(), G_out.nodes.end(), cmp_weight);
+    for(int i = 0; i < G_out.nodes.size(); i++){
+        G_out.location[G_out.nodes[i].val] = i;
+    }
     vector<int> L, H, S;//L存储图中的所有点的val
-    for (int i = 0; i < G_outq.nodes.size(); i++) {
-        L.push_back(G_outq.nodes[i].val);   //Line3
-        if(G_outq.nodes[i].weight < G_outq.nodes[G_outq.location[q]].weight)
-            S.push_back(G_outq.nodes[i].val);
+    for (int i = 0; i < G_out.nodes.size(); i++) {
+        L.push_back(G_out.nodes[i].val);   //Line3
+        if(G_out.nodes[i].weight < G_out.weights[q])
+            S.push_back(G_out.nodes[i].val);
     }
     H.assign(S.begin(), S.end());
     //H.assign(L.begin(), L.begin() + (L.size() / 2));//Line4
@@ -589,50 +534,43 @@ void BatchPeelingAlgorithm(Graph G_out, Graph G_in, int k, int l, int q, Graph &
         //将L的点集转化为图
 
         Graph G_Outq, G_Inq;
-        pointsChangeToGraph(G_outq, G_inq, G_Outq, G_Inq, L);
+        pointsChangeToGraph(G_out, G_in, G_Outq, G_Inq, L);
 
         //转化成的图为G_Outq和G_Inq
-        //将转换好的图复制到G_outq和G_inq begin
-
-        swap(G_Outq.location, G_outq.location);
-        swap(G_Outq.weights, G_outq.weights);
-        swap(G_Inq.location, G_Inq.location);
-        swap(G_Inq.weights, G_Inq.weights);
-        G_outq.nodes.assign(G_Outq.nodes.begin(), G_Outq.nodes.end());
-        G_inq.nodes.assign(G_Inq.nodes.begin(), G_Inq.nodes.end());
-        //end
+        GraphAToB(G_Outq, G_Inq, G_out, G_in);
 
         //update L with the degree constraint
-        Graph G_outq_tmp, G_inq_tmp;
-        flag = QueryDcore(G_outq, G_inq, k, l, q, G_outq_tmp, G_inq_tmp);//Line8
+        Graph G_outq, G_inq;
+        int flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);//Line8
 
         //更新图begin
-        swap(G_outq.location, G_outq_tmp.location);
-        swap(G_outq.weights, G_outq_tmp.weights);
-        swap(G_inq.location, G_inq_tmp.location);
-        swap(G_inq.weights, G_inq_tmp.weights);
-        G_outq.nodes.assign(G_outq_tmp.nodes.begin(), G_outq_tmp.nodes.end());
-        G_inq.nodes.assign(G_inq_tmp.nodes.begin(), G_inq_tmp.nodes.end());
+        GraphAToB(G_outq, G_inq, G_out, G_in);
         //更新图end
 
-        sort(G_outq.nodes.begin(), G_outq.nodes.end(), cmp_weight);
+        sort(G_out.nodes.begin(), G_out.nodes.end(), cmp_weight);
+        //在每一次排序之后都要更新一下Graph中的location
+        for(int i = 0; i < G_out.nodes.size(); i++){
+            G_out.location[G_out.nodes[i].val] = i;
+        }
 
         vector<int> LStar;
         S.clear();
-        for(int i = 0; i < G_outq.nodes.size(); i++){
-            LStar.push_back(G_outq.nodes[i].val);
-            if(G_outq.nodes[i].weight < G_outq.nodes[G_outq.location[q]].weight)
-                S.push_back(G_outq.nodes[i].val);
+        for(int i = 0; i < G_out.nodes.size(); i++){
+            LStar.push_back(G_out.nodes[i].val);
+            if(G_out.nodes[i].weight < G_out.nodes[G_out.location[q]].weight)
+                S.push_back(G_out.nodes[i].val);
         }
-        if(!flag){
+        if(flag){
             H.assign(S.begin(), S.begin() + int(S.size() / 2));
-            L.assign(L0.begin(), L0.end());
+            L.assign(LStar.begin(), LStar.end());
+            GraphAToB(G_out, G_in, G_outTmp, G_inTmp);
         }else{
             H.assign(H.begin(), H.begin() + int(H.size() / 2));
-            L.assign(LStar.begin(), LStar.end());
+            L.assign(L0.begin(), L0.end());
+            GraphAToB(G_outTmp, G_inTmp, G_out, G_in);
         }
     }
-    pointsChangeToGraph(G_outq, G_inq, G_outr, G_inr, L);
+    pointsChangeToGraph(G_out, G_in, G_outr, G_inr, L);
 }
 
 //index的子函数by zyf
@@ -745,10 +683,7 @@ void QueryDcore(Graph G_out, Graph G_in, int k, int l, Graph &G_outq, Graph &G_i
     vector<int> useless;
     while (1) {
         flag = 1;
-//        sort(G_out.nodes.begin(), G_out.nodes.end(), cmp_out);
-//        for (int i = 0; i < G_out.nodes.size(); i++) {
-//            G_out.location[G_out.nodes[i].val] = i;
-//        }
+
         for (int i = 0; i < G_out.nodes.size(); i++) {
             if (G_out.nodes[i].connectV.size() < l) {
                 //delete node
@@ -759,11 +694,6 @@ void QueryDcore(Graph G_out, Graph G_in, int k, int l, Graph &G_outq, Graph &G_i
             }
         }
 
-        //将点按照入度进行排序
-//        sort(G_in.nodes.begin(), G_in.nodes.end(), cmp_in);
-//        for (int i = 0; i < G_in.nodes.size(); i++) {
-//            G_in.location[G_in.nodes[i].val] = i;
-//        }
         for (int i = 0; i < G_in.nodes.size(); i++) {
             if (G_in.nodes[i].connectV.size() < k) {
                 //delete node
@@ -791,13 +721,11 @@ void QueryDcore(Graph G_out, Graph G_in, int k, int l, Graph &G_outq, Graph &G_i
 /*
  * 建立所有index索引的数组
  * I为三维数组，第一维为k值，第二维为点，第三维为该点下的所有点以及与该点对应的l值
- * location存储每个k值下每个点的位置
+ * location存储每个k值下每个点的位置，(point,location)
  */
 void IndexConstructionAlgorithm(Graph G_out, Graph G_in, vector<vector<vector<PII>>> &I, vector<map<int, int>> &location) {
     int k = 1, kmax = 0;
-    for (int i = 0; i < G_in.nodes.size(); i++) {
-        kmax = max(kmax, int(G_in.nodes[i].connectV.size()));
-    }
+    kmax = Kkmax;
     //vector<PVV> I;
     //vector<map<int, int>> location;  //存储每个k值下每个点的位置
     while (k <= kmax) {
@@ -805,20 +733,31 @@ void IndexConstructionAlgorithm(Graph G_out, Graph G_in, vector<vector<vector<PI
         QueryDcore(G_out, G_in, k, 1, G_outr, G_inr);
         map<int, int> Lmax;
         OutCoreDecom2(G_outr, G_inr, k, Lmax);
-        vector<int> G_points;
         map<int, int> PLTmp;
         for (int i = 0; i < G_outr.nodes.size(); i++) {
-            G_points.push_back(G_outr.nodes[i].val);
             PLTmp[G_outr.nodes[i].val] = i;
         }
         location.push_back(PLTmp);
         vector<PII> P;
         vector<vector<PII>> Ptmp;
         PII tmp;
+        map<int, bool> judgePoint;
+        for(int i = 0; i < G_outr.nodes.size(); i++){
+            judgePoint[G_outr.nodes[i].val] = false;
+        }
+        vector<int> points;
         for (int i = 0; i < G_outr.nodes.size(); i++) {//u
-            int LmaxTmp = Lmax[G_outr.nodes[i].val];
+            P.clear();
+            //重置judgePoint
+            for(int j = 0; j < points.size(); j++){
+                judgePoint[points[j]] = false;
+            }
+            int point = G_outr.nodes[i].val;
+            int LmaxTmp = Lmax[point];
             for (int j = 0; j < G_outr.nodes[i].connectV.size(); j++) {//v
-                if (Lmax[G_outr.nodes[i].connectV[j]] >= 1) {
+                if (Lmax[G_outr.nodes[i].connectV[j]] >= 1 && !judgePoint[G_outr.nodes[i].connectV[j]]) {
+                    judgePoint[G_outr.nodes[i].connectV[j]] = true;
+                    points.push_back(G_outr.nodes[i].connectV[j]);
                     tmp.first = G_outr.nodes[i].connectV[j];
                     //.first.push_back(G_outr.nodes[i].connectV[j]);
                     if (Lmax[G_outr.nodes[i].connectV[j]] > LmaxTmp) {
@@ -831,11 +770,25 @@ void IndexConstructionAlgorithm(Graph G_out, Graph G_in, vector<vector<vector<PI
                     P.push_back(tmp);
                 }
             }
+            int locate = G_inr.location[point];
+            for(int j = 0; j < G_inr.nodes[locate].connectV.size(); j++){
+                if(Lmax[G_inr.nodes[locate].connectV[j]] >= 1 && !judgePoint[G_inr.nodes[locate].connectV[j]]){
+                    tmp.first = G_inr.nodes[locate].connectV[j];
+                    if(Lmax[G_inr.nodes[locate].connectV[j]] > LmaxTmp){
+                        tmp.second = LmaxTmp;
+                    }else{
+                        tmp.second = Lmax[G_inr.nodes[locate].connectV[j]];
+                    }
+                    P.push_back(tmp);
+                }
+            }
+
             sort(P.begin(), P.end(), cmp_lmax);
             Ptmp.push_back(P);
 
         }
         I.push_back(Ptmp);
+        k++;
     }
 }
 
@@ -880,63 +833,98 @@ vector<int> IndexQueryAlgorithm(vector<vector<PII>> I, int q, int l, map<int, in
  *查询前置
  *在此函数中获取查询所需要的条件
 */
-void BehindQuery(Graph G_out, Graph G_in) {
+void BehindQuery(Graph G_out, Graph G_in, int k, int l, int q, Graph &G_outr, Graph &G_inr) {
     vector<vector<vector<PII>>> I;
     vector<map<int, int>> location;
     IndexConstructionAlgorithm(G_out, G_in, I, location);
-    /*手动输入查询的信息begin*/
-    int k, l, q;
-    cout << "请输入你所要查询的k值、l值和q值：" << endl;
-    cin >> k;
-    cout << "输入k值：" << endl;
-    if(k <= 0){
-        cout << "输入的k值有误!" << endl;
-        return;
-    }
-    cout << "输入l值：" << endl;
-    cin >> l;
-    cout << "输入q值:" << endl;
-    cin >> q;
-    if(G_out.location.find(q) == G_out.location.end()){
-        cout << "输入的q值有误" << endl;
-        return;
-    }
-    /*手动输入查询的信息end*/
+
     vector<vector<PII>> Itmp;
     Itmp = I[k - 1];
     vector<int> points = IndexQueryAlgorithm(Itmp, q, l, location[k - 1]);
+    pointsChangeToGraph(G_out, G_in, G_outr, G_inr, points);
+    int a;
+    cin >> a;
 }
 
+
+
 void solve(){
-    int k, l, q;
-    cin >> k >> l >> q;
-    //验证basic peel是否能成功使用
+    double c[5] = {0.1, 0.3, 0.5, 0.7, 0.9};
+    clock_t start_QD, start_BaP, start_BPA, start_I;
+    clock_t end_QD, end_BaP, end_BPA, end_I;
     Graph G_out, G_in;
     readDataTmp(G_out, G_in);
+    int weight_bas = G_out.nodes.size(), weight_bat = G_out.nodes.size(), weight_ind = G_out.nodes.size();
+    //index 预处理 begin
+    vector<vector<vector<PII>>> I;
+    vector<map<int, int>> location;
+    IndexConstructionAlgorithm(G_out, G_in, I, location);
 
-    //测试Query Community
-    Graph G_outq, G_inq;
-    bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
-    if(!flag){
-        cout << "q不满足" << endl;
-        return;
+    //预处理 end
+    for(int i = 0; i < 5; i++){
+        int k = c[i] * Kkmax, l = c[i] * Llmax;
+        int q;
+        //获取G_outq, G_inq的值
+        Graph G_outq, G_inq;
+        while(1){
+            q = rand() % G_out.nodes.size() + 1;
+            start_QD = clock();
+            bool flag = QueryDcore(G_out, G_in, k, l, q, G_outq, G_inq);
+            end_QD = clock();
+            if(flag){
+                break;
+            }
+        }
+        //part1 Query Community + Basic Peeling
+
+        Graph G_outBaP, G_inBaP;
+        start_BaP = clock();
+        Peel(G_outq, G_inq, k, l, q, G_outBaP, G_inBaP);
+        end_BaP = clock();
+        for(int j = 0; j < G_outBaP.nodes.size(); j++){
+            weight_bas = min(weight_bas, G_outBaP.nodes[i].weight);
+        }
+        //part2 Query Community + Batch Peeling
+        Graph G_outBPA, G_inBPA;
+        start_BPA = clock();
+        BatchPeelingAlgorithm(G_outq, G_in, k, l, q, G_outBPA, G_inBPA);
+        end_BPA = clock();
+        for(int j = 0; j < G_outBPA.nodes.size(); j++){
+            weight_bat = min(weight_bat, G_outBPA.nodes[i].weight);
+        }
+        //part3 Index-based Query + Batch Peeling
+
+        //Graph G_outI, G_inI;
+        start_I = clock();
+        //BehindQuery(G_out, G_in, k, l, q, G_outI, G_inI);
+//        Graph G_outIR, G_inIR;
+//        BatchPeelingAlgorithm(G_outI, G_inI, k, l, q, G_outIR, G_inIR);
+        Graph G_outr, G_inr;
+        vector<vector<PII>> Itmp;
+        Itmp = I[k - 1];
+        vector<int> points = IndexQueryAlgorithm(Itmp, q, l, location[k - 1]);
+        for(int j = 0; j < points.size(); j++){
+            weight_ind = min(weight_ind, G_out.weights[points[j]]);
+        }
+        //pointsChangeToGraph(G_out, G_in, G_outr, G_inr, points);
+        end_I = clock();
+
+        //output the result
+        cout << "Time cost:" << endl;
+        cout << "Query Community:" << end_QD - start_QD << endl;
+        cout << "Basic Peeling" << end_BaP - start_BaP << endl;
+        cout << "Batch Peeling" << end_BPA - start_BPA << endl;
+        cout << "Index + Batch" << end_I - start_I << endl;
+
+        cout << "Minimal Weight:" << endl;
+        cout << "Query Community + Basic Peeling : " << weight_bas << endl;
+        cout << "Query Community + Batch Peeling : " << weight_bat << endl;
+        cout << "Index + Batch Peeling : " << weight_ind << endl;
     }
-    //get edges in the new graph
-//    for(int i = 0; i < G_outq.nodes.size(); i++){
-//        for(int j = 0; j < G_outq.nodes[i].connectV.size(); j++){
-//            cout << G_outq.nodes[i].val << ' ' << G_outq.nodes[i].connectV[j] << endl;
-//        }
-//    }
-    //测试Basic Peeling
-    Graph G_outBP, G_inBP;
-    Peel(G_outq, G_inq, k, l, q, G_outBP, G_inBP);
-    //测试结束
-    
-    Graph G_outBPA, G_inBPA;
-    BatchPeelingAlgorithm(G_outq, G_inq, k, l, q, G_outBPA, G_inBPA);
 }
 
 int main() {
+    srand(time(NULL));
     solve();
     return 0;
 }
